@@ -1,7 +1,6 @@
 package com.pipiou.scheduler;
 
-
-import com.pipiou.scheduler.impl.SimpleTriggerFactory;
+import com.pipiou.scheduler.impl.DefaultTriggerFactory;
 import com.pipiou.scheduler.spi.MutableTrigger;
 import com.pipiou.scheduler.utils.Key;
 
@@ -52,8 +51,8 @@ public class TriggerBuilder {
     }
 
     public Trigger build() {
-        if (triggerFactory == null){
-            triggerFactory = SimpleTriggerFactory.init();
+        if (triggerFactory == null) {
+            triggerFactory = DefaultTriggerFactory.init();
         }
         MutableTrigger trig = (MutableTrigger) triggerFactory.create();
         trig.setStartTime(startTime);

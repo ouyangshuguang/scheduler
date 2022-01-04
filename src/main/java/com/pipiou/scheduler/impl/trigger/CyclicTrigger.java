@@ -1,5 +1,7 @@
 package com.pipiou.scheduler.impl.trigger;
 
+import com.pipiou.scheduler.Trigger;
+
 import java.util.Date;
 
 public class CyclicTrigger extends AbstractTrigger {
@@ -16,12 +18,22 @@ public class CyclicTrigger extends AbstractTrigger {
 
     @Override
     public Date computeFirstFireTime() {
-        return getStartTime();
+        nextFireTime = getStartTime();
+        return nextFireTime;
     }
 
     @Override
     public void updateAfterMisfire() {
+        int instr = getMisfireInstruction();
+        if(instr == Trigger.MISFIRE_INSTRUCTION_IGNORE_MISFIRE_POLICY) {
+            return;
+        }
 
+        if (instr == Trigger.MISFIRE_INSTRUCTION_SMART_POLICY) {
+            Date newFireTime = new Date();
+            setStartTime(newFireTime);
+            setNextFireTime(newFireTime);
+        }
     }
 
     public long getSleepTime() {

@@ -25,6 +25,6 @@ public interface Trigger {
 
     int getMisfireInstruction();
 
-    enum ExecutionState {NOOP, SET_TRIGGER_COMPLETE, SET_SHELL_CREATE_ERROR, SET_SHELL_RUN_ERROR}
+    enum ExecutionState {NOOP, SET_TRIGGER_COMPLETE, SET_SHELL_CREATE_ERROR, SET_SHELL_RUN_ERROR, SET_SHELL_THREAD_POOL_REJECTED}
 
 }

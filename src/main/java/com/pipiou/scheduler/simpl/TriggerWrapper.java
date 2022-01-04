@@ -22,7 +22,9 @@ public class TriggerWrapper {
 
     public static final int STATE_COMPLETE = 3;
 
-    public static final int STATE_ERROR = 4;
+    public static final int STATE_PAUSED = 4;
+
+    public static final int STATE_ERROR = 5;
 
     public TriggerWrapper(OperableTrigger trigger) {
         this.trigger = trigger;

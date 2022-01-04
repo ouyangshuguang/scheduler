@@ -17,21 +17,25 @@ public class CyclicRunShell implements RunShell {
     public void run() {
         TriggerWrapper tw = jec.getTriggerWrapper();
         CyclicTrigger trigger = (CyclicTrigger) jec.getTrigger();
-        boolean cyclicFlg = true;
-        if (tw.state == TriggerWrapper.STATE_COMPLETE || tw.state == TriggerWrapper.STATE_ERROR) {
-            cyclicFlg = false;
-        }
+        boolean cyclicFlg = isCyclicFlg(tw.state);
         while (cyclicFlg) {
             jec.getJob().execute();
             try {
                 Thread.sleep(trigger.getSleepTime());
             } catch (InterruptedException e) {
-                cyclicFlg = false;
                 break;
             }
-            if (tw.state == TriggerWrapper.STATE_COMPLETE || tw.state == TriggerWrapper.STATE_ERROR) {
-                cyclicFlg = false;
-            }
+            cyclicFlg = isCyclicFlg(tw.state);
+        }
+    }
+
+    private boolean isCyclicFlg(int twState) {
+        if (twState == TriggerWrapper.STATE_COMPLETE
+                || twState == TriggerWrapper.STATE_PAUSED
+                || twState == TriggerWrapper.STATE_ERROR) {
+            return false;
+        } else {
+            return true;
         }
     }
 

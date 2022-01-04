@@ -4,7 +4,7 @@ import com.pipiou.scheduler.Trigger;
 
 import java.util.Date;
 
-public class SimpleTrigger extends AbstractTrigger {
+public class DefaultTrigger extends AbstractTrigger {
 
     private int repeatCount = 0;
 

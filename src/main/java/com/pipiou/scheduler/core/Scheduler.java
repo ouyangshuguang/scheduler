@@ -1,7 +1,9 @@
 package com.pipiou.scheduler.core;
 
 import com.pipiou.scheduler.JobDetail;
+import com.pipiou.scheduler.JobKey;
 import com.pipiou.scheduler.Trigger;
+import com.pipiou.scheduler.TriggerKey;
 import com.pipiou.scheduler.exception.SchedulerException;
 import com.pipiou.scheduler.spi.OperableTrigger;
 
@@ -63,4 +65,32 @@ public class Scheduler {
         thread.signalScheduleChange();
         return ft;
     }
+
+    public void pauseTrigger(TriggerKey triggerKey) throws SchedulerException {
+        resources.getJobStore().pauseTrigger(triggerKey);
+        thread.signalScheduleChange();
+    }
+
+    public boolean unscheduleJob(TriggerKey triggerKey) throws SchedulerException {
+        if (resources.getJobStore().removeTrigger(triggerKey)) {
+            thread.signalScheduleChange();
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    public boolean deleteJob(JobKey jobKey) throws SchedulerException {
+        boolean result;
+        result = resources.getJobStore().removeJob(jobKey);
+        if (result) {
+            thread.signalScheduleChange();
+        }
+        return result;
+    }
+
+    public String getSchedulerName() {
+        return resources.getName();
+    }
+
 }

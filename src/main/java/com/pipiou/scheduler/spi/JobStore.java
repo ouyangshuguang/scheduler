@@ -17,6 +17,8 @@ public interface JobStore {
 
     void storeTrigger(OperableTrigger trigger, boolean replaceExisting) throws ObjectAlreadyExistsException;
 
+    void pauseTrigger(TriggerKey triggerKey);
+
     boolean removeTrigger(TriggerKey triggerKey);
 
     void storeJobAndTrigger(JobDetail newJob, OperableTrigger newTrigger) throws ObjectAlreadyExistsException;

@@ -75,14 +75,30 @@ public class RAMJobStore implements JobStore {
     }
 
     @Override
+    public void pauseTrigger(TriggerKey triggerKey) {
+        synchronized (lock) {
+            TriggerWrapper tw = triggerWrappersByKey.get(triggerKey);
+            if (tw == null || tw.trigger == null) {
+                return;
+            }
+            if (tw.state == TriggerWrapper.STATE_COMPLETE) {
+                return;
+            }
+            tw.state = TriggerWrapper.STATE_PAUSED;
+            acquiredTriggers.remove(tw);
+        }
+    }
+
+    @Override
     public boolean removeTrigger(TriggerKey key) {
         boolean found;
 
         synchronized (lock) {
-            TriggerWrapper trigger = triggerWrappersByKey.remove(key);
-            found = trigger != null;
+            TriggerWrapper tw = triggerWrappersByKey.remove(key);
+            found = tw != null;
             if (found) {
-                acquiredTriggers.remove(trigger);
+                tw.state = TriggerWrapper.STATE_PAUSED;
+                acquiredTriggers.remove(tw);
             }
         }
         return found;
@@ -183,6 +199,9 @@ public class RAMJobStore implements JobStore {
                     schedulerThread.signalScheduleChange();
                 } else if (executionState == Trigger.ExecutionState.SET_SHELL_CREATE_ERROR) {
                     setAllTriggersStateError(trigger.getJobKey());
+                    schedulerThread.signalScheduleChange();
+                } else if (executionState == Trigger.ExecutionState.SET_SHELL_THREAD_POOL_REJECTED) {
+                    acquiredTriggers.add(tw);
                     schedulerThread.signalScheduleChange();
                 }
             }

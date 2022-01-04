@@ -2,6 +2,7 @@ package com.pipiou.scheduler.core;
 
 import com.pipiou.scheduler.Trigger;
 import com.pipiou.scheduler.exception.SchedulerException;
+import com.pipiou.scheduler.exception.ThreadPoolRejectedException;
 import com.pipiou.scheduler.simpl.JobTriggerBundle;
 import com.pipiou.scheduler.spi.OperableTrigger;
 import org.slf4j.Logger;
@@ -106,8 +107,12 @@ public class SchedulerThread extends Thread {
                             resources.getJobStore().completeTrigger(jobTriggerBundle.getTriggerWrapper().trigger, Trigger.ExecutionState.SET_SHELL_CREATE_ERROR);
                             continue;
                         }
-                        if (resources.getThreadPool().runInThread(jobRunShell) == false) {
-                            resources.getJobStore().completeTrigger(jobTriggerBundle.getTriggerWrapper().trigger, Trigger.ExecutionState.SET_SHELL_RUN_ERROR);
+                        try {
+                            if (resources.getThreadPool().runInThread(jobRunShell) == false) {
+                                resources.getJobStore().completeTrigger(jobTriggerBundle.getTriggerWrapper().trigger, Trigger.ExecutionState.SET_SHELL_RUN_ERROR);
+                            }
+                        } catch (ThreadPoolRejectedException e) {
+                            
                         }
                     }
                     continue;

@@ -7,4 +7,6 @@ public interface SchedulerFactory {
 
     Scheduler getScheduler() throws SchedulerException;
 
+    Scheduler getScheduler(String schedulerName) throws SchedulerException;
+
 }
