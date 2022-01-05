@@ -24,7 +24,11 @@ public class TriggerWrapper {
 
     public static final int STATE_PAUSED = 4;
 
-    public static final int STATE_ERROR = 5;
+    public static final int STATE_BLOCKED = 5;
+
+    public static final int STATE_PAUSED_BLOCKED = 6;
+
+    public static final int STATE_ERROR = 7;
 
     public TriggerWrapper(OperableTrigger trigger) {
         this.trigger = trigger;

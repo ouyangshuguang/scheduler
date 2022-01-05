@@ -50,6 +50,11 @@ public class TriggerBuilder {
         return this;
     }
 
+    public TriggerBuilder forJob(JobKey jobKey) {
+        this.jobKey = jobKey;
+        return this;
+    }
+
     public Trigger build() {
         if (triggerFactory == null) {
             triggerFactory = DefaultTriggerFactory.init();

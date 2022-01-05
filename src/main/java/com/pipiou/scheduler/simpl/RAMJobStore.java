@@ -4,7 +4,7 @@ import com.pipiou.scheduler.JobDetail;
 import com.pipiou.scheduler.JobKey;
 import com.pipiou.scheduler.Trigger;
 import com.pipiou.scheduler.TriggerKey;
-import com.pipiou.scheduler.core.SchedulerThread;
+import com.pipiou.scheduler.core.Scheduler;
 import com.pipiou.scheduler.exception.ObjectAlreadyExistsException;
 import com.pipiou.scheduler.spi.JobStore;
 import com.pipiou.scheduler.spi.OperableTrigger;
@@ -14,7 +14,7 @@ import java.util.*;
 
 public class RAMJobStore implements JobStore {
 
-    protected SchedulerThread schedulerThread;
+    protected Scheduler scheduler;
 
     private final Object lock = new Object();
 
@@ -26,7 +26,14 @@ public class RAMJobStore implements JobStore {
 
     private TreeSet<TriggerWrapper> acquiredTriggers = new TreeSet<TriggerWrapper>(new TriggerWrapperComparator());
 
+    private HashSet<JobKey> blockedJobs = new HashSet<JobKey>();
+
     protected long misfireThreshold = 5000L;
+
+    @Override
+    public void initialize(Scheduler scheduler) {
+        this.scheduler = scheduler;
+    }
 
     @Override
     public void storeJob(JobDetail jobDetail, boolean replaceExisting) throws ObjectAlreadyExistsException {
@@ -70,7 +77,11 @@ public class RAMJobStore implements JobStore {
                 triggerWrappersByJob.put(trigger.getJobKey(), triggers);
             }
             triggers.add(tw);
-            acquiredTriggers.add(tw);
+            if (blockedJobs.contains(tw.jobKey)) {
+                tw.state = TriggerWrapper.STATE_BLOCKED;
+            } else {
+                acquiredTriggers.add(tw);
+            }
         }
     }
 
@@ -97,11 +108,17 @@ public class RAMJobStore implements JobStore {
             TriggerWrapper tw = triggerWrappersByKey.remove(key);
             found = tw != null;
             if (found) {
-                tw.state = TriggerWrapper.STATE_PAUSED;
+                tw.state = TriggerWrapper.STATE_COMPLETE;
                 acquiredTriggers.remove(tw);
             }
         }
         return found;
+    }
+
+    @Override
+    public Integer getTriggerState(TriggerKey key) {
+        TriggerWrapper tw = triggerWrappersByKey.remove(key);
+        return tw != null ? tw.state : null;
     }
 
     @Override
@@ -117,6 +134,7 @@ public class RAMJobStore implements JobStore {
             if (acquiredTriggers.size() == 0) {
                 return result;
             }
+            Set<JobKey> disallowConcurrentExecuteJobs = new HashSet<JobKey>();
 
             while (true) {
                 TriggerWrapper tw;
@@ -140,6 +158,17 @@ public class RAMJobStore implements JobStore {
                     acquiredTriggers.add(tw);
                     break;
                 }
+
+                JobKey jobKey = tw.trigger.getJobKey();
+                JobDetail job = jobWrappersByKey.get(jobKey).jobDetail;
+                if (job.isDisallowConcurrentExecute()) {
+                    if (disallowConcurrentExecuteJobs.contains(jobKey)) {
+                        continue;
+                    } else {
+                        disallowConcurrentExecuteJobs.add(jobKey);
+                    }
+                }
+
                 tw.state = TriggerWrapper.STATE_ACQUIRED;
                 result.add(tw.trigger);
             }
@@ -171,12 +200,23 @@ public class RAMJobStore implements JobStore {
                     continue;
                 }
                 tw.state = TriggerWrapper.STATE_WAITING;
-                tw.trigger.fireTrigger();
-                JobWrapper jw = jobWrappersByKey.get(tw.trigger.getJobKey());
-                if (tw.trigger.getNextFireTime() != null) {
-                    if (!jw.jobDetail.isDisallowConcurrentExecute()) {
-                        acquiredTriggers.add(tw);
+                trigger.fireTrigger();
+                JobWrapper jw = jobWrappersByKey.get(trigger.getJobKey());
+                JobDetail job = jw.jobDetail;
+                if (job.isDisallowConcurrentExecute()) {
+                    List<TriggerWrapper> dceTws = triggerWrappersByJob.get(job.getKey());
+                    for (TriggerWrapper dceTw : dceTws) {
+                        if (dceTw.state == TriggerWrapper.STATE_WAITING) {
+                            dceTw.state = TriggerWrapper.STATE_BLOCKED;
+                        }
+                        if (dceTw.state == TriggerWrapper.STATE_PAUSED) {
+                            dceTw.state = TriggerWrapper.STATE_PAUSED_BLOCKED;
+                        }
+                        acquiredTriggers.remove(dceTw);
                     }
+                    blockedJobs.add(job.getKey());
+                } else if (tw.trigger.getNextFireTime() != null) {
+                    acquiredTriggers.add(tw);
                 }
                 JobTriggerBundle jobTriggerBundle = new JobTriggerBundle(jw, tw);
                 result.add(jobTriggerBundle);
@@ -188,21 +228,43 @@ public class RAMJobStore implements JobStore {
     @Override
     public void completeTrigger(OperableTrigger trigger, Trigger.ExecutionState executionState) {
         synchronized (lock) {
+            JobWrapper jw = jobWrappersByKey.get(trigger.getJobKey());
             TriggerWrapper tw = triggerWrappersByKey.get(trigger.getKey());
+
+            if (jw != null) {
+                JobDetail job = jw.jobDetail;
+                if (job.isDisallowConcurrentExecute()) {
+                    blockedJobs.remove(job.getKey());
+                    List<TriggerWrapper> dceTws = triggerWrappersByJob.get(job.getKey());
+                    for (TriggerWrapper dceTw : dceTws) {
+                        if (dceTw.state == TriggerWrapper.STATE_BLOCKED) {
+                            dceTw.state = TriggerWrapper.STATE_WAITING;
+                            acquiredTriggers.add(dceTw);
+                        }
+                        if (dceTw.state == TriggerWrapper.STATE_PAUSED_BLOCKED) {
+                            dceTw.state = TriggerWrapper.STATE_PAUSED;
+                        }
+                    }
+                    scheduler.signalScheduleChange();
+                }
+            } else {
+                blockedJobs.remove(trigger.getJobKey());
+            }
+
             if (tw != null) {
                 if (executionState == Trigger.ExecutionState.SET_TRIGGER_COMPLETE) {
                     tw.state = TriggerWrapper.STATE_COMPLETE;
                     acquiredTriggers.remove(tw);
-                    schedulerThread.signalScheduleChange();
+                    scheduler.signalScheduleChange();
                 } else if (executionState == Trigger.ExecutionState.SET_SHELL_RUN_ERROR) {
                     tw.state = TriggerWrapper.STATE_ERROR;
-                    schedulerThread.signalScheduleChange();
+                    scheduler.signalScheduleChange();
                 } else if (executionState == Trigger.ExecutionState.SET_SHELL_CREATE_ERROR) {
                     setAllTriggersStateError(trigger.getJobKey());
-                    schedulerThread.signalScheduleChange();
+                    scheduler.signalScheduleChange();
                 } else if (executionState == Trigger.ExecutionState.SET_SHELL_THREAD_POOL_REJECTED) {
                     acquiredTriggers.add(tw);
-                    schedulerThread.signalScheduleChange();
+                    scheduler.signalScheduleChange();
                 }
             }
         }

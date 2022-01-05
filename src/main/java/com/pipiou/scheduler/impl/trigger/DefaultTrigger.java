@@ -42,7 +42,7 @@ public class DefaultTrigger extends AbstractTrigger {
     }
 
     private Date getAfterFireTime(Date afterTime) {
-        if ((timesTriggered > repeatCount) && (repeatCount != REPEAT_FOREVER)) {
+        if ((timesTriggered >= repeatCount) && (repeatCount != REPEAT_FOREVER)) {
             return null;
         }
         if (afterTime == null) {

@@ -112,7 +112,7 @@ public class SchedulerThread extends Thread {
                                 resources.getJobStore().completeTrigger(jobTriggerBundle.getTriggerWrapper().trigger, Trigger.ExecutionState.SET_SHELL_RUN_ERROR);
                             }
                         } catch (ThreadPoolRejectedException e) {
-                            
+
                         }
                     }
                     continue;

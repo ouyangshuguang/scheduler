@@ -19,7 +19,7 @@ public class RunShellFactory {
 
         Job jobInstance = jobDetail.getJobInstance();
         if (jobInstance != null) {
-            jec = new JobExecutionContext(scheduler, bundle, jobInstance);
+            jec = new JobExecutionContext(bundle, jobInstance);
         } else {
             Class<? extends Job> jobClass = jobDetail.getJobClass();
             if (jobClass == null) {
@@ -28,16 +28,16 @@ public class RunShellFactory {
                 Job job = null;
                 try {
                     job = jobClass.newInstance();
-                    jec = new JobExecutionContext(scheduler, bundle, job);
+                    jec = new JobExecutionContext(bundle, job);
                 } catch (Exception e) {
                     throw new SchedulerException(e);
                 }
             }
         }
         if (trigger instanceof CyclicTrigger) {
-            runShell = new CyclicRunShell(jec);
+            runShell = new CyclicRunShell(jec, scheduler);
         } else {
-            runShell = new DefaultRunShell(jec);
+            runShell = new DefaultRunShell(jec, scheduler);
         }
         return runShell;
     }

@@ -102,6 +102,7 @@ public class DefaultSchedulerFactory implements SchedulerFactory {
             RunShellFactory runShellFactory = new RunShellFactory();
             resources.setRunShellFactory(runShellFactory);
             scheduler = new Scheduler(resources);
+            jobStore.initialize(scheduler);
             sr.put(scheduler);
         }
         return scheduler;

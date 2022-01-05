@@ -4,16 +4,11 @@ import com.pipiou.scheduler.Job;
 import com.pipiou.scheduler.JobDetail;
 import com.pipiou.scheduler.Trigger;
 import com.pipiou.scheduler.simpl.JobTriggerBundle;
-import com.pipiou.scheduler.simpl.TriggerWrapper;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class JobExecutionContext {
-
-    private Scheduler scheduler;
-
-    private TriggerWrapper triggerWrapper;
 
     private JobDetail jobDetail;
 
@@ -23,9 +18,7 @@ public class JobExecutionContext {
 
     private Job job;
 
-    public JobExecutionContext(Scheduler scheduler, JobTriggerBundle jobTriggerBundle, Job job) {
-        this.scheduler = scheduler;
-        this.triggerWrapper = jobTriggerBundle.getTriggerWrapper();
+    public JobExecutionContext(JobTriggerBundle jobTriggerBundle, Job job) {
         this.jobDetail = jobTriggerBundle.getJobWrapper().jobDetail;
         this.trigger = jobTriggerBundle.getTriggerWrapper().trigger;
         this.job = job;
@@ -36,14 +29,6 @@ public class JobExecutionContext {
         if (trigger.getJobDataMap() != null) {
             this.jobDataMap.putAll(trigger.getJobDataMap());
         }
-    }
-
-    public Scheduler getScheduler() {
-        return scheduler;
-    }
-
-    public TriggerWrapper getTriggerWrapper() {
-        return triggerWrapper;
     }
 
     public JobDetail getJobDetail() {
