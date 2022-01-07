@@ -53,8 +53,10 @@ public class RAMJobStore implements JobStore {
 
         synchronized (lock) {
             List<TriggerWrapper> triggers = triggerWrappersByJob.get(key);
-            for (TriggerWrapper tw : triggers) {
-                this.removeTrigger(tw.trigger.getKey());
+            if (triggers != null) {
+                for (TriggerWrapper tw : triggers) {
+                    this.removeTrigger(tw.trigger.getKey());
+                }
             }
             found = jobWrappersByKey.remove(key) != null;
         }
@@ -117,7 +119,7 @@ public class RAMJobStore implements JobStore {
 
     @Override
     public Integer getTriggerState(TriggerKey key) {
-        TriggerWrapper tw = triggerWrappersByKey.remove(key);
+        TriggerWrapper tw = triggerWrappersByKey.get(key);
         return tw != null ? tw.state : null;
     }
 
@@ -205,14 +207,16 @@ public class RAMJobStore implements JobStore {
                 JobDetail job = jw.jobDetail;
                 if (job.isDisallowConcurrentExecute()) {
                     List<TriggerWrapper> dceTws = triggerWrappersByJob.get(job.getKey());
-                    for (TriggerWrapper dceTw : dceTws) {
-                        if (dceTw.state == TriggerWrapper.STATE_WAITING) {
-                            dceTw.state = TriggerWrapper.STATE_BLOCKED;
+                    if (dceTws != null) {
+                        for (TriggerWrapper dceTw : dceTws) {
+                            if (dceTw.state == TriggerWrapper.STATE_WAITING) {
+                                dceTw.state = TriggerWrapper.STATE_BLOCKED;
+                            }
+                            if (dceTw.state == TriggerWrapper.STATE_PAUSED) {
+                                dceTw.state = TriggerWrapper.STATE_PAUSED_BLOCKED;
+                            }
+                            acquiredTriggers.remove(dceTw);
                         }
-                        if (dceTw.state == TriggerWrapper.STATE_PAUSED) {
-                            dceTw.state = TriggerWrapper.STATE_PAUSED_BLOCKED;
-                        }
-                        acquiredTriggers.remove(dceTw);
                     }
                     blockedJobs.add(job.getKey());
                 } else if (tw.trigger.getNextFireTime() != null) {
@@ -236,13 +240,15 @@ public class RAMJobStore implements JobStore {
                 if (job.isDisallowConcurrentExecute()) {
                     blockedJobs.remove(job.getKey());
                     List<TriggerWrapper> dceTws = triggerWrappersByJob.get(job.getKey());
-                    for (TriggerWrapper dceTw : dceTws) {
-                        if (dceTw.state == TriggerWrapper.STATE_BLOCKED) {
-                            dceTw.state = TriggerWrapper.STATE_WAITING;
-                            acquiredTriggers.add(dceTw);
-                        }
-                        if (dceTw.state == TriggerWrapper.STATE_PAUSED_BLOCKED) {
-                            dceTw.state = TriggerWrapper.STATE_PAUSED;
+                    if (dceTws != null) {
+                        for (TriggerWrapper dceTw : dceTws) {
+                            if (dceTw.state == TriggerWrapper.STATE_BLOCKED) {
+                                dceTw.state = TriggerWrapper.STATE_WAITING;
+                                acquiredTriggers.add(dceTw);
+                            }
+                            if (dceTw.state == TriggerWrapper.STATE_PAUSED_BLOCKED) {
+                                dceTw.state = TriggerWrapper.STATE_PAUSED;
+                            }
                         }
                     }
                     scheduler.signalScheduleChange();
@@ -288,9 +294,11 @@ public class RAMJobStore implements JobStore {
     protected void setAllTriggersStateError(JobKey jobKey) {
         synchronized (lock) {
             List<TriggerWrapper> tws = triggerWrappersByJob.get(jobKey);
-            for (TriggerWrapper tw : tws) {
-                tw.state = TriggerWrapper.STATE_ERROR;
-                acquiredTriggers.remove(tw);
+            if (tws != null) {
+                for (TriggerWrapper tw : tws) {
+                    tw.state = TriggerWrapper.STATE_ERROR;
+                    acquiredTriggers.remove(tw);
+                }
             }
         }
     }

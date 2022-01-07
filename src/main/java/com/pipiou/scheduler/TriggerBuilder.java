@@ -69,10 +69,7 @@ public class TriggerBuilder {
         if (jobKey != null) {
             trig.setJobKey(jobKey);
         }
-
-        if (!jobDataMap.isEmpty()) {
-            trig.setJobDataMap(jobDataMap);
-        }
+        trig.setJobDataMap(jobDataMap);
         return trig;
     }
 }

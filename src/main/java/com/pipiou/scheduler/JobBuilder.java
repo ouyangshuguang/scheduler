@@ -35,10 +35,7 @@ public class JobBuilder {
         JobDetailImpl job = new JobDetailImpl();
         job.setJobClass(jobClass);
         job.setKey(key);
-
-        if(!jobDataMap.isEmpty()) {
-            job.setJobDataMap(jobDataMap);
-        }
+        job.setJobDataMap(jobDataMap);
         return job;
     }
 

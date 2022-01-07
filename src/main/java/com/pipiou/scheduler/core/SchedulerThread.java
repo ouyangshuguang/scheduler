@@ -8,8 +8,8 @@ import com.pipiou.scheduler.spi.OperableTrigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.SecureRandom;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SchedulerThread extends Thread {
@@ -36,7 +36,7 @@ public class SchedulerThread extends Thread {
         this.idleWaitTime = idleWaitTime;
     }
 
-    private Random random = new Random();
+    private SecureRandom random = new SecureRandom();
 
     private int idleWaitVariable = 10000;
 
@@ -90,7 +90,7 @@ public class SchedulerThread extends Thread {
                         now = System.currentTimeMillis();
                         timeUntilTrigger = triggerTime - now;
                     }
-                    if(triggers.isEmpty()) {
+                    if (triggers.isEmpty()) {
                         continue;
                     }
                     synchronized (sigLock) {
